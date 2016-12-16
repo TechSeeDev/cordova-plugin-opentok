@@ -15,6 +15,7 @@
     NSMutableDictionary *connectionDictionary;
     NSMutableDictionary *streamDictionary;
     NSMutableDictionary *callbackList;
+    NSMutableSet *streamSet;
 }
 
 @synthesize exceptionId;
@@ -56,7 +57,8 @@
     subscriberDictionary = [[NSMutableDictionary alloc] init];
     streamDictionary = [[NSMutableDictionary alloc] init];
     connectionDictionary = [[NSMutableDictionary alloc] init];
-    
+    streamSet = [[NSMutableSet alloc] init];
+
     // Return Result
     CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -133,7 +135,6 @@
         _publisher.view.clipsToBounds = borderRadius ? YES : NO;
     }
     else {
-        
         // Pulls the subscriber object from dictionary to prepare it for update
         OTSubscriber* streamInfo = [subscriberDictionary objectForKey:sid];
         if (streamInfo) {
@@ -301,7 +302,14 @@
     
     // Get Parameters
     NSString* sid = [command.arguments objectAtIndex:0];
-    
+
+    if ([streamSet containsObject:sid]) {
+        NSLog(@"Already subscribed to stream: %@", sid);
+
+        return [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
+    }
+
+    [streamSet addObject:sid];
     int top = [[command.arguments objectAtIndex:1] intValue];
     int left = [[command.arguments objectAtIndex:2] intValue];
     int width = [[command.arguments objectAtIndex:3] intValue];
@@ -470,7 +478,7 @@
     [self triggerJSEvent: @"sessionEvents" withType: @"connectionDestroyed" withData: data];
 }
 - (void)session:(OTSession*)mySession streamCreated:(OTStream*)stream{
-    NSLog(@"iOS Received Stream");
+    NSLog(@"iOS Received Stream: %@", [stream name]);
     [streamDictionary setObject:stream forKey:stream.streamId];
     [self triggerStreamCreated: stream withEventType: @"sessionEvents"];
 }
